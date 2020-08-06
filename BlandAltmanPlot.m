@@ -93,8 +93,8 @@ function h=BlandAltmanPlot(var1, var2, varargin)
 % | Octave 4.4.1  |  works      |  not tested      |  works               |
 % """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 %
-% Version: 1.0.1
-% Date:    2020-07-06
+% Version: 1.0.2
+% Date:    2020-08-06
 % Author:  H.J. Wisselink
 % Licence: CC by-nc-sa 4.0 ( creativecommons.org/licenses/by-nc-sa/4.0 )
 % Email=  'h_j_wisselink*alumnus_utwente_nl';
@@ -117,7 +117,7 @@ if ~success
     rethrow(ME)
 else
     [StoreToAppdata, alpha, plot_x_mean, plotCI, AddDetailsText, ...
-        TargetAxes, TextDigitsDisplayed, xxyy]=...
+        h_ax, TextDigitsDisplayed, xxyy]=...
         deal(options.StoreToAppdata, options.alpha, options.plot_x_mean, options.plotCI, ...
         options.AddDetailsText, options.TargetAxes, options.TextDigitsDisplayed, options.xxyy);
 end
@@ -161,12 +161,12 @@ end
 xxyy(isnan(xxyy))=h.xxyy(isnan(xxyy));
 
 %Plot the data, mean and LoAs.
-h.plot.data=plot(x,y,'.','Parent',TargetAxes);
-NextPlot=get(TargetAxes,'NextPlot');%get property to retain state
-set(TargetAxes,'NextPlot','add')
-h.plot.mean=plot(xxyy(1:2),mu*[1 1],'k','Parent',TargetAxes);
-h.plot.loa_lo=plot(xxyy(1:2),loa(1)*[1 1],'k--','Parent',TargetAxes);
-h.plot.loa_hi=plot(xxyy(1:2),loa(2)*[1 1],'k--','Parent',TargetAxes);
+h.plot.data=plot(x,y,'.','Parent',h_ax);
+NextPlot=get(h_ax,'NextPlot');%get property to retain state
+set(h_ax,'NextPlot','add')
+h.plot.mean=plot(xxyy(1:2),mu*[1 1],'k','Parent',h_ax);
+h.plot.loa_lo=plot(xxyy(1:2),loa(1)*[1 1],'k--','Parent',h_ax);
+h.plot.loa_hi=plot(xxyy(1:2),loa(2)*[1 1],'k--','Parent',h_ax);
 if plotCI
     err1=diff(CI.loa_lower)/2;
     err2=diff(CI.mu)/2;
@@ -175,8 +175,8 @@ if plotCI
     h.plot.CI_mu=errorbar(xe,mu    ,err2,'ko');
     h.plot.CI_hi=errorbar(xe,loa(2),err1,'ko');
 end
-set(TargetAxes,'NextPlot',NextPlot)%restore state (probably hold('off') )
-axis(TargetAxes,xxyy)
+set(h_ax,'NextPlot',NextPlot)%restore state (probably hold('off') )
+axis(h_ax,xxyy)
 if AddDetailsText
     %Add text elements.
     %Use num2str to make use of automatic choice of FormatSpec for a fixed number of digits. This
@@ -186,42 +186,42 @@ if AddDetailsText
     %Add mean text.
     tx=xxyy(2);ty=mu;
     txt=sprintf('mean: %s',num2str(ty,d));
-    h.text.mean=text(tx,ty,txt,...
+    h.text.mean=text(tx,ty,txt,'Parent',h_ax,...
         'HorizontalAlignment','right','VerticalAlignment','bottom');
     if plotCI
         txt=sprintf('CI: %s - %s',...
             num2str(CI.mu(1),d),num2str(CI.mu(2),d));
-        h.text.meanCI=text(tx,ty,txt,...
+        h.text.meanCI=text(tx,ty,txt,'Parent',h_ax,...
             'HorizontalAlignment','right','VerticalAlignment','top');
     end
     
     %Add upper limit of agreement.
     ty=loa(2);
     txt=sprintf('LoA: %s',num2str(ty,d));
-    h.text.loa_hi=text(tx,ty,txt,...
+    h.text.loa_hi=text(tx,ty,txt,'Parent',h_ax,...
         'HorizontalAlignment','right','VerticalAlignment','bottom');
     if plotCI
         txt=sprintf('CI: %s - %s',...
             num2str(CI.loa_upper(1),d),num2str(CI.loa_upper(2),d));
-        h.text.loa_hi_CI=text(tx,ty,txt,...
+        h.text.loa_hi_CI=text(tx,ty,txt,'Parent',h_ax,...
             'HorizontalAlignment','right','VerticalAlignment','top');
     end
     
     %Add lower limit of agreement.
     ty=loa(1);
     txt=sprintf('LoA: %s',num2str(ty,d));
-    h.text.loa_lo=text(tx,ty,txt,...
+    h.text.loa_lo=text(tx,ty,txt,'Parent',h_ax,...
         'HorizontalAlignment','right','VerticalAlignment','bottom');
     if plotCI
         txt=sprintf('CI: %s - %s',...
             num2str(CI.loa_lower(1),d),num2str(CI.loa_lower(2),d));
-        h.text.loa_lo_CI=text(tx,ty,txt,...
+        h.text.loa_lo_CI=text(tx,ty,txt,'Parent',h_ax,...
             'HorizontalAlignment','right','VerticalAlignment','top');
     end
 end
 
 if StoreToAppdata
-    setappdata(TargetAxes,'HJW___BlandAltmanPlot___data',h)
+    setappdata(h_ax,'HJW___BlandAltmanPlot___data',h)
 end
 if nargout==0
     clear h
@@ -637,4 +637,38 @@ switch test
     case '>='
         tf= v_num >= v;
 end
+end
+function [passed,item]=test_if_scalar_logical(item)
+%test if the input is a scalar logical or convertable to it
+%(use isLogical to trigger an input error, use val as the parsed input)
+%
+% Allowed values:
+%- true or false
+%- 1 or 0
+%- 'on' or 'off'
+persistent states
+if isempty(states)
+    states={true,false;...
+        1,0;...
+        'on','off'};
+    try
+        states(end+1,:)=eval('{"on","off"}');
+    catch
+    end
+end
+passed=true;
+try
+    for n=1:size(states,1)
+        for m=1:2
+            if isequal(item,states{n,m})
+                item=states{1,m};return
+            end
+        end
+    end
+    if isa(item,'matlab.lang.OnOffSwitchState')
+        item=logical(item);return
+    end
+catch
+end
+passed=false;
 end
