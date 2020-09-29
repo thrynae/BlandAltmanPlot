@@ -72,9 +72,8 @@ function h=BlandAltmanPlot(var1, var2, varargin)
 %      .loa_lo       - handle to the 'LoA: %f' text object
 %      .loa_lo_CI    - handle to the 'CI: %f-%f' text object
 %
-%The method for calculating characteristic values, as well as example data was taken from
-%Bland&Altman (Lancet, 1986, i:307-310)
-% http://dx.doi.org/10.1016/S0140-6736(86)90837-8
+%The method for calculating characteristic values and the example data were taken from
+%Bland&Altman (Lancet, 1986, i:307-310) http://dx.doi.org/10.1016/S0140-6736(86)90837-8
 %
 %The implementation of tinv and alpha_to_Z are by Star Strider. These implementations mean you can
 %use this function without the Statistics Toolbox (except on Matlab 6.5).
@@ -84,7 +83,7 @@ function h=BlandAltmanPlot(var1, var2, varargin)
 %  _______________________________________________________________________
 % | Compatibility | Windows 10  | Ubuntu 20.04 LTS | MacOS 10.15 Catalina |
 % |---------------|-------------|------------------|----------------------|
-% | ML R2020a     |  works      |  not tested      |  not tested          |
+% | ML R2020b     |  works      |  not tested      |  not tested          |
 % | ML R2018a     |  works      |  works           |  not tested          |
 % | ML R2015a     |  works      |  works           |  not tested          |
 % | ML R2011a     |  works      |  works           |  not tested          |
@@ -93,11 +92,11 @@ function h=BlandAltmanPlot(var1, var2, varargin)
 % | Octave 4.4.1  |  works      |  not tested      |  works               |
 % """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 %
-% Version: 1.0.2
-% Date:    2020-08-06
+% Version: 1.1.0
+% Date:    2020-09-29
 % Author:  H.J. Wisselink
 % Licence: CC by-nc-sa 4.0 ( creativecommons.org/licenses/by-nc-sa/4.0 )
-% Email=  'h_j_wisselink*alumnus_utwente_nl';
+% Email = 'h_j_wisselink*alumnus_utwente_nl';
 % Real_email = regexprep(Email,{'*','_'},{'@','.'})
 
 if nargin<2
@@ -154,11 +153,15 @@ h.xxyy=[min(x) max(x) min(y) max(y)];
 %Consider limits of agreement CI when calculating the bounds.
 h.xxyy(3)=min(h.xxyy(3),CI.loa_lower(1));
 h.xxyy(4)=max(h.xxyy(4),CI.loa_upper(2));
+%Add a small margin so the points are not on the exact edge of the plot.
+margin=5;%in percent
+meanxxyy=[[1 1]*mean(h.xxyy(1:2)) [1 1]*mean(h.xxyy(3:4))];
+h.xxyy=meanxxyy+(h.xxyy-meanxxyy)*(1+margin/100);
 if isempty(xxyy)
     xxyy=[NaN NaN NaN NaN];
 end
 %Replace any NaN by the auto-determined extent.
-xxyy(isnan(xxyy))=h.xxyy(isnan(xxyy));
+xxyy(isnan(xxyy))=h.xxyy(isnan(xxyy));h.xxyy=xxyy;
 
 %Plot the data, mean and LoAs.
 h.plot.data=plot(x,y,'.','Parent',h_ax);
@@ -532,7 +535,7 @@ function tf=ifversion(test,Rxxxxab,Oct_flag,Oct_test,Oct_ver)
 % ifversion('>=','R2009a') returns true when run on R2009a or later
 % ifversion('<','R2016a') returns true when run on R2015b or older
 % ifversion('==','R2018a') returns true only when run on R2018a
-% ifversion('==',9.8) returns true only when run on R2020a
+% ifversion('==',9.9) returns true only when run on R2020b
 % ifversion('<',0,'Octave','>',0) returns true only on Octave
 %
 % The conversion is based on a manual list and therefore needs to be updated manually, so it might
@@ -542,7 +545,7 @@ function tf=ifversion(test,Rxxxxab,Oct_flag,Oct_test,Oct_ver)
 %  _______________________________________________________________________
 % | Compatibility | Windows 10  | Ubuntu 20.04 LTS | MacOS 10.15 Catalina |
 % |---------------|-------------|------------------|----------------------|
-% | ML R2020a     |  works      |  not tested      |  not tested          |
+% | ML R2020b     |  works      |  not tested      |  not tested          |
 % | ML R2018a     |  works      |  works           |  not tested          |
 % | ML R2015a     |  works      |  works           |  not tested          |
 % | ML R2011a     |  works      |  works           |  not tested          |
@@ -551,11 +554,11 @@ function tf=ifversion(test,Rxxxxab,Oct_flag,Oct_test,Oct_ver)
 % | Octave 4.4.1  |  works      |  not tested      |  works               |
 % """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 %
-% Version: 1.0.2
-% Date:    2020-05-20
+% Version: 1.0.4
+% Date:    2020-09-28
 % Author:  H.J. Wisselink
 % Licence: CC by-nc-sa 4.0 ( creativecommons.org/licenses/by-nc-sa/4.0 )
-% Email=  'h_j_wisselink*alumnus_utwente_nl';
+% Email = 'h_j_wisselink*alumnus_utwente_nl';
 % Real_email = regexprep(Email,{'*','_'},{'@','.'})
 
 %The decimal of the version numbers are padded with a 0 to make sure v7.10 is larger than v7.9.
@@ -583,7 +586,7 @@ if isempty(v_num)
         'R2009a' 708;'R2009b' 709;'R2010a' 710;'R2010b' 711;'R2011a' 712;'R2011b' 713;...
         'R2012a' 714;'R2012b' 800;'R2013a' 801;'R2013b' 802;'R2014a' 803;'R2014b' 804;...
         'R2015a' 805;'R2015b' 806;'R2016a' 900;'R2016b' 901;'R2017a' 902;'R2017b' 903;...
-        'R2018a' 904;'R2018b' 905;'R2019a' 906;'R2019b' 907;'R2020a' 908};
+        'R2018a' 904;'R2018b' 905;'R2019a' 906;'R2019b' 907;'R2020a' 908;'R2020b',909};
 end
 
 if octave
@@ -638,14 +641,15 @@ switch test
         tf= v_num >= v;
 end
 end
-function [passed,item]=test_if_scalar_logical(item)
-%test if the input is a scalar logical or convertable to it
-%(use isLogical to trigger an input error, use val as the parsed input)
+function [isLogical,val]=test_if_scalar_logical(val)
+%Test if the input is a scalar logical or convertible to it.
+%(use the first output to trigger an input error, use the second as the parsed input)
 %
 % Allowed values:
 %- true or false
 %- 1 or 0
 %- 'on' or 'off'
+%- matlab.lang.OnOffSwitchState.on or matlab.lang.OnOffSwitchState.off
 persistent states
 if isempty(states)
     states={true,false;...
@@ -656,19 +660,19 @@ if isempty(states)
     catch
     end
 end
-passed=true;
+isLogical=true;
 try
     for n=1:size(states,1)
         for m=1:2
-            if isequal(item,states{n,m})
-                item=states{1,m};return
+            if isequal(val,states{n,m})
+                val=states{1,m};return
             end
         end
     end
-    if isa(item,'matlab.lang.OnOffSwitchState')
-        item=logical(item);return
+    if isa(val,'matlab.lang.OnOffSwitchState')
+        val=logical(val);return
     end
 catch
 end
-passed=false;
+isLogical=false;
 end

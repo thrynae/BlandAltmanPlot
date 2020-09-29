@@ -6,8 +6,8 @@
    <!--
 This HTML was auto-generated from MATLAB code.
 To make changes, update the MATLAB code and republish this document.
-      --><title>fun_fq7WWjXW3MizTMW</title><meta name="generator" content="MATLAB 9.8"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2020-08-06"><meta name="DC.source" content="fun_fq7WWjXW3MizTMW.m"><style type="text/css">
-html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+      --><title>BlandAltmanPlot</title><meta name="generator" content="MATLAB 9.9"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2020-09-29"><meta name="DC.source" content="BlandAltmanPlot.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
 
 html { min-height:100%; margin-bottom:1px; }
 html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
@@ -67,207 +67,555 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 
 
 
-  </style></head><body><div class="content"><pre class="codeinput"><span class="comment">% Create a Bland-Altman plot and return a struct with results and handles.</span>
-<span class="comment">% This function does not require any toolbox.</span>
-<span class="comment">%</span>
-<span class="comment">% Syntax:</span>
-<span class="comment">%  BlandAltmanPlot()</span>
-<span class="comment">%     Generate an example in the current axes.</span>
-<span class="comment">%  BlandAltmanPlot(var1,var2)</span>
-<span class="comment">%     Create a Bland-Altman plot with the two entered variables. All other settings are set to the</span>
-<span class="comment">%     default, as described below. Both must be numeric vectors with 2 dimensions or fewer (so</span>
-<span class="comment">%     1x1x30 sized arrays will return an error). The y-values are var2-var1, the x-values are</span>
-<span class="comment">%     (var1+var2)/2, unless the plot_x_mean switch is set to false, in which case var1 determines</span>
-<span class="comment">%     the x-values.</span>
-<span class="comment">%  BlandAltmanPlot(___,Name,Value)</span>
-<span class="comment">%     Change optional parameters. See below for the list of options that can be changed.</span>
-<span class="comment">%  BlandAltmanPlot(___,optionstruct)</span>
-<span class="comment">%     Change optional parameters. Each field should be one of the parameters detailed below. Missing</span>
-<span class="comment">%     fields are filled with the default.</span>
-<span class="comment">%  h=BlandAltmanPlot(___)</span>
-<span class="comment">%     Returns a struct with values and object handles. This can be used to extract calculated</span>
-<span class="comment">%     values, to delete specific objects, or to change the plot type.</span>
-<span class="comment">%</span>
-<span class="comment">% Parameters:</span>
-<span class="comment">% AddDetailsText      [default=true] Add the details to the plot as text. This will add the mean and</span>
-<span class="comment">%                     limits of agreement above the plotted lines. The confidence intervals will be</span>
-<span class="comment">%                     added under the plotted lines if enabled by the plotCI parameter. The text</span>
-<span class="comment">%                     elements are placed on the far right side of the plot.</span>
-<span class="comment">% alpha               [default=0.05] The alpha value is used for the limits of agreement, as well as</span>
-<span class="comment">%                     for the confidence intervals.</span>
-<span class="comment">% plotCI              [default=true] Add the CIs of the mean and LoAs to the plot with the errorbar</span>
-<span class="comment">%                     function. If AddDetailsText is set to true, this parameter controls both the</span>
-<span class="comment">%                     whiskers and the text. The whiskers are plotted close to the left side of the</span>
-<span class="comment">%                     plot.</span>
-<span class="comment">% plot_x_mean         [default=true] If set to false, the first input is used for the x-coordinate,</span>
-<span class="comment">%                     instead of using the mean.</span>
-<span class="comment">% StoreToAppdata      [default=true] If set to true, the output of this function will be stored in</span>
-<span class="comment">%                     the axes object with setappdata, so it can be easily retrieved. The output</span>
-<span class="comment">%                     struct is set to the data field named 'HJW___BlandAltmanPlot___data'.</span>
-<span class="comment">% Parent              [default=[]] This determines the parent axes for the plots and texts. If left</span>
-<span class="comment">%                     empty, gca is used to determine the target axes. If TargetAxes and Parent both</span>
-<span class="comment">%                     are non-empty, TargetAxes is ignored.</span>
-<span class="comment">% TargetAxes          [default=[]] This is the same as the Parent switch. If both are non-empty,</span>
-<span class="comment">%                     TargetAxes is ignored. This switch is maintained for backwards compatability.</span>
-<span class="comment">% TextDigitsDisplayed [default=4] This is either the number of digits used in the text elements, or</span>
-<span class="comment">%                     a FormatSpec that makes num2str return a non-empty char.</span>
-<span class="comment">% xxyy                [default=[]] This parameter controls the axis range. It has to be a 4-element</span>
-<span class="comment">%                     vector. Any NaN values will be auto-determined based on the input data (taking</span>
-<span class="comment">%                     into account the value of plot_x_mean). An empty input is equivalent to [NaN</span>
-<span class="comment">%                     NaN NaN NaN].</span>
-<span class="comment">%</span>
-<span class="comment">% Output:</span>
-<span class="comment">% h.input.alpha       - alpha value used for plots and calculations</span>
-<span class="comment">%        .var1        - first variable used for plot</span>
-<span class="comment">%        .var2        - second variable used for plot</span>
-<span class="comment">%  .data.mu           - mean value of var2-var1</span>
-<span class="comment">%       .loa          - lower and upper limits of agreement</span>
-<span class="comment">%       .CI.mu        - lower and upper bound of the CI of the mean</span>
-<span class="comment">%          .loa_lower - lower and upper bound of the CI of the lower LoA</span>
-<span class="comment">%          .loa_upper - lower and upper bound of the CI of the upper LoA</span>
-<span class="comment">%  .xxyy              - axis extents used</span>
-<span class="comment">%  .plot.data         - handle to the data plot object</span>
-<span class="comment">%       .mean         - handle to the mean line</span>
-<span class="comment">%       .loa_lo       - handle to the lower LoA line</span>
-<span class="comment">%       .loa_hi       - handle to the upper LoA line</span>
-<span class="comment">%       .CI_lo        - handle to the lower LoA errorbar</span>
-<span class="comment">%       .CI_mu        - handle to the mean errorbar</span>
-<span class="comment">%       .CI_hi        - handle to the upper LoA errorbar</span>
-<span class="comment">%  .text.mean         - handle to the 'mean: %f' text object</span>
-<span class="comment">%       .meanCI       - handle to the 'CI: %f-%f' text object</span>
-<span class="comment">%       .loa_hi       - handle to the 'LoA: %f' text object</span>
-<span class="comment">%       .loa_hi_CI    - handle to the 'CI: %f-%f' text object</span>
-<span class="comment">%       .loa_lo       - handle to the 'LoA: %f' text object</span>
-<span class="comment">%       .loa_lo_CI    - handle to the 'CI: %f-%f' text object</span>
-<span class="comment">%</span>
-<span class="comment">% The method for calculating characteristic values, as well as example data was taken from</span>
-<span class="comment">% Bland&amp;Altman (Lancet, 1986, i:307-310)</span>
-<span class="comment">%  http://dx.doi.org/10.1016/S0140-6736(86)90837-8</span>
-<span class="comment">%</span>
-<span class="comment">% The implementation of tinv and alpha_to_Z are by Star Strider. These implementations mean you can</span>
-<span class="comment">% use this function without the Statistics Toolbox (except on Matlab 6.5).</span>
-<span class="comment">%  https://www.mathworks.com/matlabcentral/fileexchange/56500</span>
-<span class="comment">%  https://www.mathworks.com/matlabcentral/answers/45173#answer_55318</span>
-<span class="comment">%</span>
-<span class="comment">%   _______________________________________________________________________</span>
-<span class="comment">%  | Compatibility | Windows 10  | Ubuntu 20.04 LTS | MacOS 10.15 Catalina |</span>
-<span class="comment">%  |---------------|-------------|------------------|----------------------|</span>
-<span class="comment">%  | ML R2020a     |  works      |  not tested      |  not tested          |</span>
-<span class="comment">%  | ML R2018a     |  works      |  works           |  not tested          |</span>
-<span class="comment">%  | ML R2015a     |  works      |  works           |  not tested          |</span>
-<span class="comment">%  | ML R2011a     |  works      |  works           |  not tested          |</span>
-<span class="comment">%  | ML 6.5 (R13)  |  works      |  not tested      |  not tested          |</span>
-<span class="comment">%  | Octave 5.2.0  |  works      |  works           |  not tested          |</span>
-<span class="comment">%  | Octave 4.4.1  |  works      |  not tested      |  works               |</span>
-<span class="comment">%  """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""</span>
-<span class="comment">%</span>
-<span class="comment">%  Version: 1.0.2</span>
-<span class="comment">%  Date:    2020-08-06</span>
-<span class="comment">%  Author:  H.J. Wisselink</span>
-<span class="comment">%  Licence: CC by-nc-sa 4.0 ( creativecommons.org/licenses/by-nc-sa/4.0 )</span>
-<span class="comment">%  Email=  'h_j_wisselink*alumnus_utwente_nl';</span>
-<span class="comment">%  Real_email = regexprep(Email,{'*','_'},{'@','.'})</span>
-</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2020a</a><br></p></div><!--
+  </style></head><body><div class="content"><h1>BlandAltmanPlot</h1><!--introduction--><p><tt style="font-size:0%">Formatted documentation for the BlandAltmanPlot function.</tt>
+<div style="margin-top:-5em;color:grey">Create a Bland-Altman plot and return a struct with results and handles.
+</div><br>
+This function does not require any toolbox, except on Matlab 6.5. The method for calculating
+characteristic values and the example data were taken from Bland&Altman (Lancet, 1986, i:307-310)
+<a href="http://dx.doi.org/10.1016/S0140-6736(86)90837-8">DOI:10.1016/S0140-6736(86)90837-8</a>
+<br><br>
+The implementation of <a
+href="https://www.mathworks.com/matlabcentral/fileexchange/56500">tinv</a> and <a
+href="https://www.mathworks.com/matlabcentral/answers/45173#answer_55318">alpha_to_Z</a> are by
+<a href="https://www.mathworks.com/matlabcentral/profile/authors/99682">Star&nbsp;Strider</a>.
+These implementations mean you can use this function without the Statistics Toolbox except on
+Matlab&nbsp;6.5.
+</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Syntax</a></li><li><a href="#2">Output arguments</a></li><li><a href="#3">Input arguments</a></li><li><a href="#4">Name,Value pairs</a></li><li><a href="#5">Example: Run analysis from original paper</a></li><li><a href="#8">Compatibility, version info, and licence</a></li></ul></div><h2 id="1">Syntax</h2><pre class="language-matlab">BlandAltmanPlot(var1,var2)
+BlandAltmanPlot(___,Name,Value)
+BlandAltmanPlot(___,optionstruct)
+h=BlandAltmanPlot(___)
+</pre><pre>Note: running without inputs runs an example.</pre><h2 id="2">Output arguments</h2><p>
+<table border=1>
+<thead>
+<tr>
+<td colspan="4">Field name</td>
+<td>Contents</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="22">h.</td>
+<td rowspan="3">.input</td>
+<td colspan="2">.alpha</td>
+<td>alpha value used for plots and calculations</td>
+</tr>
+<tr>
+<td colspan="2">.var1</td>
+<td>first variable used for plot</td>
+</tr>
+<tr>
+<td colspan="2">.var1</td>
+<td>second variable used for plot</td>
+</tr>
+<tr>
+<td rowspan="5">.data</td>
+<td colspan="2">.mu</td>
+<td>mean value of var2-var1</td>
+</tr>
+<tr>
+<td colspan="2">.loa</td>
+<td>lower and upper limits of agreement</td>
+</tr>
+<tr>
+<td rowspan="3">.CI</td>
+<td>.mu</td>
+<td>lower and upper bound of the CI of the mean</td>
+</tr>
+<tr>
+<td>.loa_lower</td>
+<td>lower and upper bound of the CI of the lower LoA</td>
+</tr>
+<tr>
+<td>.loa_upper</td>
+<td>lower and upper bound of the CI of the upper LoA</td>
+</tr>
+<tr>
+<td colspan="3">.xxyy</td>
+<td>axis extents used</td>
+</tr>
+<tr>
+<td rowspan="7">.plot</td>
+<td colspan="2">.data</td>
+<td>handle to the data plot object</td>
+</tr>
+<tr>
+<td colspan="2">.mean</td>
+<td>handle to the mean line</td>
+</tr>
+<tr>
+<td colspan="2">.loa_lo</td>
+<td>handle to the lower LoA line</td>
+</tr>
+<tr>
+<td colspan="2">.loa_hi</td>
+<td>handle to the upper LoA line</td>
+</tr>
+<tr>
+<td colspan="2">.CI_lo</td>
+<td>handle to the lower LoA errorbar</td>
+</tr>
+<tr>
+<td colspan="2">.CI_mu</td>
+<td>handle to the mean errorbar</td>
+</tr>
+<tr>
+<td colspan="2">.CI_hi</td>
+<td>handle to the upper LoA errorbar</td>
+</tr>
+<tr>
+<td rowspan="6">.text</td>
+<td colspan="2">.mean</td>
+<td>handle to the 'mean: %f' text object</td>
+</tr>
+<tr>
+<td colspan="2">.meanCI</td>
+<td>handle to the 'CI: %f-%f' text object</td>
+</tr>
+<tr>
+<td colspan="2">.loa_hi</td>
+<td>handle to the 'LoA: %f' text object</td>
+</tr>
+<tr>
+<td colspan="2">.loa_hi_CI</td>
+<td>handle to the 'CI: %f-%f' text object</td>
+</tr>
+<tr>
+<td colspan="2">.loa_lo</td>
+<td>handle to the 'LoA: %f' text object</td>
+</tr>
+<tr>
+<td colspan="2">.loa_lo_CI</td>
+<td>handle to the 'CI: %f-%f' text object</td>
+</tr>
+</tbody>
+</table>
+</p><h2 id="3">Input arguments</h2><p>
+<table border=1>
+<tr><td>
+var1,var2
+</td><td>
+Create a Bland-Altman plot with the two entered variables. Both must be numeric vectors with 2 dimensions or fewer (so 1x1x30 sized arrays will return an error). The y-values are var2-var1, the x-values are (var1+var2)/2, unless the plot_x_mean switch is set to false, in which case var1 determines the x-values.
+</td></tr>
+<tr><td>
+Name,Value
+</td><td>
+Change optional parameters. See below for the list of options that can be changed.
+</td></tr>
+<tr><td>
+optionstruct
+</td><td>
+Instead of the Name,Value, parameters can also be entered in a struct. Missing fields will be set to the default values.
+</td></tr>
+</table>
+</p><h2 id="4">Name,Value pairs</h2><p>
+<table border=1>
+<tr><td>
+AddDetailsText
+</td><td>
+Add the details to the plot as text. This will add the mean and limits of agreement above the plotted lines. The confidence intervals will be added under the plotted lines if enabled by the plotCI parameter. The text elements are placed on the far right side of the plot.
+<br><code>default=true;</code>
+</td></tr>
+<tr><td>
+alpha
+</td><td>
+The alpha value is used for the limits of agreement, as well as for the confidence intervals.
+<br><code>default=0.05;</code>
+</td></tr>
+<tr><td>
+plotCI
+</td><td>
+Add the CIs of the mean and LoAs to the plot with the errorbar function. If AddDetailsText is set to true, this parameter controls both the whiskers and the text. The whiskers are plotted close to the left side of the plot.
+<br><code>default=true;</code>
+</td></tr>
+<tr><td>
+plot_x_mean
+</td><td>
+If set to false, the first input is used for the x-coordinate, instead of using the mean.
+<br><code>default=true;</code>
+</td></tr>
+<tr><td>
+StoreToAppdata
+</td><td>
+If set to true, the output of this function will be stored in the axes object with setappdata, so it can be easily retrieved. The output struct is set to the data field named 'HJW___BlandAltmanPlot___data'.
+<br><code>default=true;</code>
+</td></tr>
+<tr><td>
+Parent/TargetAxes
+</td><td>
+This determines the parent axes for the plots and texts. If left empty, gca is used to determine the target axes. If TargetAxes and Parent both are non-empty, TargetAxes is ignored.
+<br><code>default=[];</code>
+</td></tr>
+<tr><td>
+TextDigitsDisplayed
+</td><td>
+This is either the number of digits used in the text elements, or a FormatSpec that makes num2str return a non-empty char.
+<br><code>default=4;</code>
+</td></tr>
+<tr><td>
+xxyy
+</td><td>
+This parameter controls the axis range. It has to be a 4-element vector. Any NaN values will be auto-determined based on the input data (taking into account the value of plot_x_mean). An empty input is equivalent to [NaN NaN NaN NaN].
+<br><code>default=[];</code>
+</td></tr>
+</table>
+</p><h2 id="5">Example: Run analysis from original paper</h2><p>Run the example from the original paper by Bland&amp;Altman.</p><pre class="codeinput"><span class="comment">%(use only the first measurement of each peak flow meter)</span>
+var1=[494,395,516,434,476,557,413,442,650,433,417,656,267,478,178,423,427];
+var2=[512,430,520,428,500,600,364,380,658,445,432,626,260,477,259,350,451];
+h=BlandAltmanPlot(var1,var2);
+
+<span class="comment">% Change the appearance of the markers:</span>
+set(h.plot.data,<span class="string">'Marker'</span>,<span class="string">'*'</span>)
+<span class="comment">% Change a property of the axes:</span>
+ax=get(h.plot.data,<span class="string">'Parent'</span>);
+set(ax,<span class="string">'YTick'</span>,-100:50:100)
+</pre><p><img vspace="5" hspace="5" src="BlandAltmanPlot_original_example.png" alt=""> </p><h2 id="8">Compatibility, version info, and licence</h2><p>
+<table>
+<tr>
+<td> Compatibility </td>
+<td style="border:2px solid black;"> Windows 10 </td>
+<td style="border:2px solid black;"> Ubuntu 20.04 LTS </td>
+<td style="border:2px solid black;"> MacOS 10.15 Catalina </td>
+</tr>
+<tr>
+<td style="border:2px solid black;"> ML R2020b </td>
+<td> works </td>
+<td> not tested </td>
+<td> not tested </td>
+</tr>
+<tr>
+<td style="border:2px solid black;"> ML R2018a </td>
+<td> works </td>
+<td> works </td>
+<td> not tested </td>
+</tr>
+<tr>
+<td style="border:2px solid black;"> ML R2015a </td>
+<td> works </td>
+<td> works </td>
+<td> not tested </td>
+</tr>
+<tr>
+<td style="border:2px solid black;"> ML R2011a </td>
+<td> works </td>
+<td> works </td>
+<td> not tested </td>
+</tr>
+<tr>
+<td style="border:2px solid black;"> ML 6.5 (R13) </td>
+<td> works </td>
+<td> not tested </td>
+<td> not tested </td>
+</tr>
+<tr>
+<td style="border:2px solid black;"> Octave 5.2.0 </td>
+<td> works </td>
+<td> works </td>
+<td> not tested </td>
+</tr>
+<tr>
+<td style="border:2px solid black;"> Octave 4.4.1 </td>
+<td> works </td>
+<td> not tested </td>
+<td> works </td>
+</tr>
+</table>
+</p><pre>Version: 1.1.0
+Date:    2020-09-29
+Author:  H.J. Wisselink
+Licence: CC by-nc-sa 4.0 ( https://creativecommons.org/licenses/by-nc-sa/4.0 )
+Email = 'h_j_wisselink*alumnus_utwente_nl';
+Real_email = regexprep(Email,{'*','_'},{'@','.'})</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2020b</a><br></p></div><!--
 ##### SOURCE BEGIN #####
-% Create a Bland-Altman plot and return a struct with results and handles.
-% This function does not require any toolbox.
-% 
-% Syntax:
-%  BlandAltmanPlot()
-%     Generate an example in the current axes.
-%  BlandAltmanPlot(var1,var2)
-%     Create a Bland-Altman plot with the two entered variables. All other settings are set to the
-%     default, as described below. Both must be numeric vectors with 2 dimensions or fewer (so
-%     1x1x30 sized arrays will return an error). The y-values are var2-var1, the x-values are
-%     (var1+var2)/2, unless the plot_x_mean switch is set to false, in which case var1 determines
-%     the x-values.
-%  BlandAltmanPlot(___,Name,Value)
-%     Change optional parameters. See below for the list of options that can be changed.
-%  BlandAltmanPlot(___,optionstruct)
-%     Change optional parameters. Each field should be one of the parameters detailed below. Missing
-%     fields are filled with the default.
-%  h=BlandAltmanPlot(___)
-%     Returns a struct with values and object handles. This can be used to extract calculated
-%     values, to delete specific objects, or to change the plot type.
-% 
-% Parameters:
-% AddDetailsText      [default=true] Add the details to the plot as text. This will add the mean and
-%                     limits of agreement above the plotted lines. The confidence intervals will be
-%                     added under the plotted lines if enabled by the plotCI parameter. The text
-%                     elements are placed on the far right side of the plot.
-% alpha               [default=0.05] The alpha value is used for the limits of agreement, as well as
-%                     for the confidence intervals.
-% plotCI              [default=true] Add the CIs of the mean and LoAs to the plot with the errorbar
-%                     function. If AddDetailsText is set to true, this parameter controls both the
-%                     whiskers and the text. The whiskers are plotted close to the left side of the
-%                     plot.
-% plot_x_mean         [default=true] If set to false, the first input is used for the x-coordinate,
-%                     instead of using the mean.
-% StoreToAppdata      [default=true] If set to true, the output of this function will be stored in
-%                     the axes object with setappdata, so it can be easily retrieved. The output
-%                     struct is set to the data field named 'HJW___BlandAltmanPlot___data'.
-% Parent              [default=[]] This determines the parent axes for the plots and texts. If left
-%                     empty, gca is used to determine the target axes. If TargetAxes and Parent both
-%                     are non-empty, TargetAxes is ignored.
-% TargetAxes          [default=[]] This is the same as the Parent switch. If both are non-empty,
-%                     TargetAxes is ignored. This switch is maintained for backwards compatability.
-% TextDigitsDisplayed [default=4] This is either the number of digits used in the text elements, or
-%                     a FormatSpec that makes num2str return a non-empty char.
-% xxyy                [default=[]] This parameter controls the axis range. It has to be a 4-element
-%                     vector. Any NaN values will be auto-determined based on the input data (taking
-%                     into account the value of plot_x_mean). An empty input is equivalent to [NaN
-%                     NaN NaN NaN].
-% 
-% Output:
-% h.input.alpha       - alpha value used for plots and calculations
-%        .var1        - first variable used for plot
-%        .var2        - second variable used for plot
-%  .data.mu           - mean value of var2-var1
-%       .loa          - lower and upper limits of agreement
-%       .CI.mu        - lower and upper bound of the CI of the mean
-%          .loa_lower - lower and upper bound of the CI of the lower LoA
-%          .loa_upper - lower and upper bound of the CI of the upper LoA
-%  .xxyy              - axis extents used
-%  .plot.data         - handle to the data plot object
-%       .mean         - handle to the mean line
-%       .loa_lo       - handle to the lower LoA line
-%       .loa_hi       - handle to the upper LoA line
-%       .CI_lo        - handle to the lower LoA errorbar
-%       .CI_mu        - handle to the mean errorbar
-%       .CI_hi        - handle to the upper LoA errorbar
-%  .text.mean         - handle to the 'mean: %f' text object
-%       .meanCI       - handle to the 'CI: %f-%f' text object
-%       .loa_hi       - handle to the 'LoA: %f' text object
-%       .loa_hi_CI    - handle to the 'CI: %f-%f' text object
-%       .loa_lo       - handle to the 'LoA: %f' text object
-%       .loa_lo_CI    - handle to the 'CI: %f-%f' text object
-% 
-% The method for calculating characteristic values, as well as example data was taken from
-% Bland&Altman (Lancet, 1986, i:307-310)
-%  http://dx.doi.org/10.1016/S0140-6736(86)90837-8
-% 
-% The implementation of tinv and alpha_to_Z are by Star Strider. These implementations mean you can
-% use this function without the Statistics Toolbox (except on Matlab 6.5).
-%  https://www.mathworks.com/matlabcentral/fileexchange/56500
-%  https://www.mathworks.com/matlabcentral/answers/45173#answer_55318
-% 
-%   _______________________________________________________________________
-%  | Compatibility | Windows 10  | Ubuntu 20.04 LTS | MacOS 10.15 Catalina |
-%  |REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH-|REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH-|REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH|REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH|
-%  | ML R2020a     |  works      |  not tested      |  not tested          |
-%  | ML R2018a     |  works      |  works           |  not tested          |
-%  | ML R2015a     |  works      |  works           |  not tested          |
-%  | ML R2011a     |  works      |  works           |  not tested          |
-%  | ML 6.5 (R13)  |  works      |  not tested      |  not tested          |
-%  | Octave 5.2.0  |  works      |  works           |  not tested          |
-%  | Octave 4.4.1  |  works      |  not tested      |  works               |
-%  """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-% 
-%  Version: 1.0.2
-%  Date:    2020-08-06
+%% BlandAltmanPlot
+%
+% <html><tt style="font-size:0%">Formatted documentation for the BlandAltmanPlot function.</tt>
+% <div style="margin-top:-5em;color:grey">Create a Bland-Altman plot and return a struct with results and handles.
+% </div><br>
+% This function does not require any toolbox, except on Matlab 6.5. The method for calculating
+% characteristic values and the example data were taken from Bland&Altman (Lancet, 1986, i:307-310)
+% <a href="http://dx.doi.org/10.1016/S0140-6736(86)90837-8">DOI:10.1016/S0140-6736(86)90837-8</a>
+% <br><br>
+% The implementation of <a
+% href="https://www.mathworks.com/matlabcentral/fileexchange/56500">tinv</a> and <a
+% href="https://www.mathworks.com/matlabcentral/answers/45173#answer_55318">alpha_to_Z</a> are by
+% <a href="https://www.mathworks.com/matlabcentral/profile/authors/99682">Star&nbsp;Strider</a>.
+% These implementations mean you can use this function without the Statistics Toolbox except on
+% Matlab&nbsp;6.5.
+% </html>
+%
+
+%% Syntax
+%
+%   BlandAltmanPlot(var1,var2)
+%   BlandAltmanPlot(___,Name,Value)
+%   BlandAltmanPlot(___,optionstruct)
+%   h=BlandAltmanPlot(___)
+%
+%  Note: running without inputs runs an example.
+
+%% Output arguments
+%
+% <html>
+% <table border=1>
+% <thead>
+% <tr>
+% <td colspan="4">Field name</td>
+% <td>Contents</td>
+% </tr>
+% </thead>
+% <tbody>
+% <tr>
+% <td rowspan="22">h.</td>
+% <td rowspan="3">.input</td>
+% <td colspan="2">.alpha</td>
+% <td>alpha value used for plots and calculations</td>
+% </tr>
+% <tr>
+% <td colspan="2">.var1</td>
+% <td>first variable used for plot</td>
+% </tr>
+% <tr>
+% <td colspan="2">.var1</td>
+% <td>second variable used for plot</td>
+% </tr>
+% <tr>
+% <td rowspan="5">.data</td>
+% <td colspan="2">.mu</td>
+% <td>mean value of var2-var1</td>
+% </tr>
+% <tr>
+% <td colspan="2">.loa</td>
+% <td>lower and upper limits of agreement</td>
+% </tr>
+% <tr>
+% <td rowspan="3">.CI</td>
+% <td>.mu</td>
+% <td>lower and upper bound of the CI of the mean</td>
+% </tr>
+% <tr>
+% <td>.loa_lower</td>
+% <td>lower and upper bound of the CI of the lower LoA</td>
+% </tr>
+% <tr>
+% <td>.loa_upper</td>
+% <td>lower and upper bound of the CI of the upper LoA</td>
+% </tr>
+% <tr>
+% <td colspan="3">.xxyy</td>
+% <td>axis extents used</td>
+% </tr>
+% <tr>
+% <td rowspan="7">.plot</td>
+% <td colspan="2">.data</td>
+% <td>handle to the data plot object</td>
+% </tr>
+% <tr>
+% <td colspan="2">.mean</td>
+% <td>handle to the mean line</td>
+% </tr>
+% <tr>
+% <td colspan="2">.loa_lo</td>
+% <td>handle to the lower LoA line</td>
+% </tr>
+% <tr>
+% <td colspan="2">.loa_hi</td>
+% <td>handle to the upper LoA line</td>
+% </tr>
+% <tr>
+% <td colspan="2">.CI_lo</td>
+% <td>handle to the lower LoA errorbar</td>
+% </tr>
+% <tr>
+% <td colspan="2">.CI_mu</td>
+% <td>handle to the mean errorbar</td>
+% </tr>
+% <tr>
+% <td colspan="2">.CI_hi</td>
+% <td>handle to the upper LoA errorbar</td>
+% </tr>
+% <tr>
+% <td rowspan="6">.text</td>
+% <td colspan="2">.mean</td>
+% <td>handle to the 'mean: %f' text object</td>
+% </tr>
+% <tr>
+% <td colspan="2">.meanCI</td>
+% <td>handle to the 'CI: %f-%f' text object</td>
+% </tr>
+% <tr>
+% <td colspan="2">.loa_hi</td>
+% <td>handle to the 'LoA: %f' text object</td>
+% </tr>
+% <tr>
+% <td colspan="2">.loa_hi_CI</td>
+% <td>handle to the 'CI: %f-%f' text object</td>
+% </tr>
+% <tr>
+% <td colspan="2">.loa_lo</td>
+% <td>handle to the 'LoA: %f' text object</td>
+% </tr>
+% <tr>
+% <td colspan="2">.loa_lo_CI</td>
+% <td>handle to the 'CI: %f-%f' text object</td>
+% </tr>
+% </tbody>
+% </table>
+% </html>
+
+%% Input arguments
+%
+% <html>
+% <table border=1>
+% <tr><td>
+% var1,var2
+% </td><td>
+% Create a Bland-Altman plot with the two entered variables. Both must be numeric vectors with 2 dimensions or fewer (so 1x1x30 sized arrays will return an error). The y-values are var2-var1, the x-values are (var1+var2)/2, unless the plot_x_mean switch is set to false, in which case var1 determines the x-values.
+% </td></tr>
+% <tr><td>
+% Name,Value
+% </td><td>
+% Change optional parameters. See below for the list of options that can be changed.
+% </td></tr>
+% <tr><td>
+% optionstruct
+% </td><td>
+% Instead of the Name,Value, parameters can also be entered in a struct. Missing fields will be set to the default values.
+% </td></tr>
+% </table>
+% </html>
+
+%% Name,Value pairs
+%
+% <html>
+% <table border=1>
+% <tr><td>
+% AddDetailsText
+% </td><td>
+% Add the details to the plot as text. This will add the mean and limits of agreement above the plotted lines. The confidence intervals will be added under the plotted lines if enabled by the plotCI parameter. The text elements are placed on the far right side of the plot.
+% <br><code>default=true;</code>
+% </td></tr>
+% <tr><td>
+% alpha
+% </td><td>
+% The alpha value is used for the limits of agreement, as well as for the confidence intervals.
+% <br><code>default=0.05;</code>
+% </td></tr>
+% <tr><td>
+% plotCI
+% </td><td>
+% Add the CIs of the mean and LoAs to the plot with the errorbar function. If AddDetailsText is set to true, this parameter controls both the whiskers and the text. The whiskers are plotted close to the left side of the plot.
+% <br><code>default=true;</code>
+% </td></tr>
+% <tr><td>
+% plot_x_mean
+% </td><td>
+% If set to false, the first input is used for the x-coordinate, instead of using the mean.
+% <br><code>default=true;</code>
+% </td></tr>
+% <tr><td>
+% StoreToAppdata
+% </td><td>
+% If set to true, the output of this function will be stored in the axes object with setappdata, so it can be easily retrieved. The output struct is set to the data field named 'HJW___BlandAltmanPlot___data'.
+% <br><code>default=true;</code>
+% </td></tr>
+% <tr><td>
+% Parent/TargetAxes
+% </td><td>
+% This determines the parent axes for the plots and texts. If left empty, gca is used to determine the target axes. If TargetAxes and Parent both are non-empty, TargetAxes is ignored.
+% <br><code>default=[];</code>
+% </td></tr>
+% <tr><td>
+% TextDigitsDisplayed
+% </td><td>
+% This is either the number of digits used in the text elements, or a FormatSpec that makes num2str return a non-empty char.
+% <br><code>default=4;</code>
+% </td></tr>
+% <tr><td>
+% xxyy
+% </td><td>
+% This parameter controls the axis range. It has to be a 4-element vector. Any NaN values will be auto-determined based on the input data (taking into account the value of plot_x_mean). An empty input is equivalent to [NaN NaN NaN NaN].
+% <br><code>default=[];</code>
+% </td></tr>
+% </table>
+% </html>
+
+%% Example: Run analysis from original paper
+%
+% Run the example from the original paper by Bland&Altman.
+%%
+
+%(use only the first measurement of each peak flow meter)
+var1=[494,395,516,434,476,557,413,442,650,433,417,656,267,478,178,423,427];
+var2=[512,430,520,428,500,600,364,380,658,445,432,626,260,477,259,350,451];
+h=BlandAltmanPlot(var1,var2);
+
+% Change the appearance of the markers:
+set(h.plot.data,'Marker','*')
+% Change a property of the axes:
+ax=get(h.plot.data,'Parent');
+set(ax,'YTick',-100:50:100)
+%%
+% <<BlandAltmanPlot_original_example.png>>
+
+%% Compatibility, version info, and licence
+% <html>
+% <table>
+% <tr>
+% <td> Compatibility </td>
+% <td style="border:2px solid black;"> Windows 10 </td>
+% <td style="border:2px solid black;"> Ubuntu 20.04 LTS </td>
+% <td style="border:2px solid black;"> MacOS 10.15 Catalina </td>
+% </tr>
+% <tr>
+% <td style="border:2px solid black;"> ML R2020b </td>
+% <td> works </td>
+% <td> not tested </td>
+% <td> not tested </td>
+% </tr>
+% <tr>
+% <td style="border:2px solid black;"> ML R2018a </td>
+% <td> works </td>
+% <td> works </td>
+% <td> not tested </td>
+% </tr>
+% <tr>
+% <td style="border:2px solid black;"> ML R2015a </td>
+% <td> works </td>
+% <td> works </td>
+% <td> not tested </td>
+% </tr>
+% <tr>
+% <td style="border:2px solid black;"> ML R2011a </td>
+% <td> works </td>
+% <td> works </td>
+% <td> not tested </td>
+% </tr>
+% <tr>
+% <td style="border:2px solid black;"> ML 6.5 (R13) </td>
+% <td> works </td>
+% <td> not tested </td>
+% <td> not tested </td>
+% </tr>
+% <tr>
+% <td style="border:2px solid black;"> Octave 5.2.0 </td>
+% <td> works </td>
+% <td> works </td>
+% <td> not tested </td>
+% </tr>
+% <tr>
+% <td style="border:2px solid black;"> Octave 4.4.1 </td>
+% <td> works </td>
+% <td> not tested </td>
+% <td> works </td>
+% </tr>
+% </table>
+% </html>
+%
+%  Version: 1.1.0
+%  Date:    2020-09-29
 %  Author:  H.J. Wisselink
-%  Licence: CC by-nc-sa 4.0 ( creativecommons.org/licenses/by-nc-sa/4.0 )
-%  Email=  'h_j_wisselink*alumnus_utwente_nl';
+%  Licence: CC by-nc-sa 4.0 ( https://creativecommons.org/licenses/by-nc-sa/4.0 )
+%  Email = 'h_j_wisselink*alumnus_utwente_nl';
 %  Real_email = regexprep(Email,{'*','_'},{'@','.'})
 ##### SOURCE END #####
 --></body></html>
