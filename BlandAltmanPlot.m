@@ -31,6 +31,11 @@ function h=BlandAltmanPlot(var1, var2, varargin)
 %                    function. If AddDetailsText is set to true, this parameter controls both the
 %                    whiskers and the text. The whiskers are plotted close to the left side of the
 %                    plot.
+%GroupIndex          [default=[]] You can split the plot into an array of line objects so you can
+%                    adjust properties like Color and Marker for subgroups. Setting this to an
+%                    empty array will keep all points in a single group.
+%                    This parameter must contain only positive integer values, as it is used to
+%                    index h.plot.data.
 %plot_x_mean         [default=true] If set to false, the first input is used for the x-coordinate,
 %                    instead of using the mean.
 %StoreToAppdata      [default=true] If set to true, the output of this function will be stored in
@@ -40,7 +45,7 @@ function h=BlandAltmanPlot(var1, var2, varargin)
 %                    empty, gca is used to determine the target axes. If TargetAxes and Parent both
 %                    are non-empty, TargetAxes is ignored.
 %TargetAxes          [default=[]] This is the same as the Parent switch. If both are non-empty,
-%                    TargetAxes is ignored. This switch is maintained for backwards compatability.
+%                    TargetAxes is ignored. This switch is maintained for backwards compatibility.
 %TextDigitsDisplayed [default=4] This is either the number of digits used in the text elements, or
 %                    a FormatSpec that makes num2str return a non-empty char.
 %xxyy                [default=[]] This parameter controls the axis range. It has to be a 4-element
@@ -58,7 +63,7 @@ function h=BlandAltmanPlot(var1, var2, varargin)
 %         .loa_lower - lower and upper bound of the CI of the lower LoA
 %         .loa_upper - lower and upper bound of the CI of the upper LoA
 % .xxyy              - axis extents used
-% .plot.data         - handle to the data plot object
+% .plot.data         - handle to the data plot object (may be an array)
 %      .mean         - handle to the mean line
 %      .loa_lo       - handle to the lower LoA line
 %      .loa_hi       - handle to the upper LoA line
@@ -75,29 +80,24 @@ function h=BlandAltmanPlot(var1, var2, varargin)
 %The method for calculating characteristic values and the example data were taken from
 %Bland&Altman (Lancet, 1986, i:307-310) http://dx.doi.org/10.1016/S0140-6736(86)90837-8
 %
-%The implementation of tinv and alpha_to_Z are by Star Strider. These implementations mean you can
-%use this function without the Statistics Toolbox (except on Matlab 6.5).
-% https://www.mathworks.com/matlabcentral/fileexchange/56500
-% https://www.mathworks.com/matlabcentral/answers/45173#answer_55318
+%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%
+%|                                                                         |%
+%|  Version: 1.2.0                                                         |%
+%|  Date:    2021-05-19                                                    |%
+%|  Author:  H.J. Wisselink                                                |%
+%|  Licence: CC by-nc-sa 4.0 ( creativecommons.org/licenses/by-nc-sa/4.0 ) |%
+%|  Email = 'h_j_wisselink*alumnus_utwente_nl';                            |%
+%|  Real_email = regexprep(Email,{'*','_'},{'@','.'})                      |%
+%|                                                                         |%
+%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%
 %
-%  _______________________________________________________________________
-% | Compatibility | Windows 10  | Ubuntu 20.04 LTS | MacOS 10.15 Catalina |
-% |---------------|-------------|------------------|----------------------|
-% | ML R2020b     |  works      |  not tested      |  not tested          |
-% | ML R2018a     |  works      |  works           |  not tested          |
-% | ML R2015a     |  works      |  works           |  not tested          |
-% | ML R2011a     |  works      |  works           |  not tested          |
-% | ML 6.5 (R13)  |  works      |  not tested      |  not tested          |
-% | Octave 5.2.0  |  works      |  works           |  not tested          |
-% | Octave 4.4.1  |  works      |  not tested      |  works               |
-% """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-%
-% Version: 1.1.0
-% Date:    2020-09-29
-% Author:  H.J. Wisselink
-% Licence: CC by-nc-sa 4.0 ( creativecommons.org/licenses/by-nc-sa/4.0 )
-% Email = 'h_j_wisselink*alumnus_utwente_nl';
-% Real_email = regexprep(Email,{'*','_'},{'@','.'})
+% Tested on several versions of Matlab (ML 6.5 and onward) and Octave (4.4.1 and onward), and on
+% multiple operating systems (Windows/Ubuntu/MacOS). For the full test matrix, see the HTML doc.
+% Compatibility considerations:
+% - The implementation of tinv and alpha_to_Z are by Star Strider. These implementations mean you
+%   can use this function without the Statistics Toolbox.
+%   https://www.mathworks.com/matlabcentral/fileexchange/56500
+%   https://www.mathworks.com/matlabcentral/answers/45173#answer_55318
 
 if nargin<2
     if nargin==0
@@ -116,17 +116,18 @@ if ~success
     rethrow(ME)
 else
     [StoreToAppdata, alpha, plot_x_mean, plotCI, AddDetailsText, ...
-        h_ax, TextDigitsDisplayed, xxyy]=...
+        h_ax, TextDigitsDisplayed, xxyy, GroupIndex]=...
         deal(options.StoreToAppdata, options.alpha, options.plot_x_mean, options.plotCI, ...
-        options.AddDetailsText, options.TargetAxes, options.TextDigitsDisplayed, options.xxyy);
+        options.AddDetailsText, options.TargetAxes, options.TextDigitsDisplayed, options.xxyy, ...
+        options.GroupIndex);
 end
 
-%compute Bland-Altman plot characteristics
+%Compute Bland-Altman plot characteristics.
 [mu,loa,CI]=BlandAltman_values(var1,var2,alpha);
 
-h=struct;%store all handles to this struct
+h=struct;%Store all handles to this struct.
 
-%prepare first part of output
+%Prepare first part of output.
 h.input.alpha=alpha;
 h.input.var1=var1;
 h.input.var2=var2;
@@ -134,9 +135,9 @@ h.data.mu=mu;
 h.data.loa=loa;
 h.data.CI=CI;
 
-%determine x and y data based on plot_x_mean
+%Determine x and y data based on plot_x_mean.
 if ~isequal(size(var1),size(var2))
-    %reshape to vectors
+    %Reshape to vectors.
     var1=var1(:);var2=var2(:);
 end
 if plot_x_mean
@@ -164,21 +165,34 @@ end
 xxyy(isnan(xxyy))=h.xxyy(isnan(xxyy));h.xxyy=xxyy;
 
 %Plot the data, mean and LoAs.
-h.plot.data=plot(x,y,'.','Parent',h_ax);
-NextPlot=get(h_ax,'NextPlot');%get property to retain state
+NextPlot=get(h_ax,'NextPlot');%Get property to retain state.
 set(h_ax,'NextPlot','add')
+if ~isempty(GroupIndex)
+    Color=[];
+    for ind=unique(GroupIndex(:)).'
+        L=GroupIndex==ind;
+        h.plot.data(ind)=plot(x(L),y(L),'.','Parent',h_ax);
+        if isempty(Color)
+            Color=get(h.plot.data(ind),'Color');
+        else
+            set(h.plot.data(ind),'Color',Color);
+        end
+    end
+else
+    h.plot.data=plot(x,y,'.','Parent',h_ax);
+end
 h.plot.mean=plot(xxyy(1:2),mu*[1 1],'k','Parent',h_ax);
 h.plot.loa_lo=plot(xxyy(1:2),loa(1)*[1 1],'k--','Parent',h_ax);
 h.plot.loa_hi=plot(xxyy(1:2),loa(2)*[1 1],'k--','Parent',h_ax);
 if plotCI
     err1=diff(CI.loa_lower)/2;
     err2=diff(CI.mu)/2;
-    xe=xxyy(1)+0.05*diff(xxyy(1:2));%shift slightly right
+    xe=xxyy(1)+0.05*diff(xxyy(1:2));%Shift slightly right.
     h.plot.CI_lo=errorbar(xe,loa(1),err1,'ko');
     h.plot.CI_mu=errorbar(xe,mu    ,err2,'ko');
     h.plot.CI_hi=errorbar(xe,loa(2),err1,'ko');
 end
-set(h_ax,'NextPlot',NextPlot)%restore state (probably hold('off') )
+set(h_ax,'NextPlot',NextPlot)%Restore state (probably hold('off') ).
 axis(h_ax,xxyy)
 if AddDetailsText
     %Add text elements.
@@ -231,7 +245,7 @@ if nargout==0
 end
 end
 function [mu,loa,CI]=BlandAltman_values(x,y,alpha)
-%compute Bland-Altman plot characteristics
+%Compute Bland-Altman plot characteristics.
 %
 %The method for calculating these values was taken from Bland&Altman
 %(Lancet, 1986, i:307-310) http://dx.doi.org/10.1016/S0140-6736(86)90837-8
@@ -249,86 +263,82 @@ function [mu,loa,CI]=BlandAltman_values(x,y,alpha)
 % http://www.mathworks.com/matlabcentral/answers/
 %  45173-p-value-to-z-score#answer_55318
 
-%retrieve statistical functions
-persistent t_inv alpha_to_Z
-if isempty(t_inv)
+%Retrieve statistical functions.
+persistent alpha_to_Z
+if isempty(alpha_to_Z)
     if ifversion('>=',7.0,'Octave','>',3)
         %Anonymous functions were introduced in ML7.0, so we need to use eval to fool the syntax
         %checker in ML6.5.
-        
-        % 2-tailed t-distribution
-        tdist2T=eval('@(t,v) (1-betainc(v/(v+t^2), v/2, 0.5))');%#ok<NASGU>
-        % 1-tailed t-distribution
-        tdist1T=eval('@(t,v) 1-(1-tdist2T(t,v))/2');%#ok<NASGU>
-        % T-Statistic Given Probability alpha & Degrees-Of-Freedom v
-        t_inv=eval('@(a,v) fzero(@(tval) (max(a,(1-a))-tdist1T(tval,v)),5)');
-        % Get Z value given the alpha
-        alpha_to_Z = eval('@(a) -sqrt(2) * erfcinv(a*2)');
+        alpha_to_Z = eval('@(a) -sqrt(2) * erfcinv(a*2)'); % Get Z value given the alpha.
     else
-        %There should be a way to replace the anonymous functions with inline functions. The
-        %commented code below could be expected to work (as it is simply a compacted copy of the
-        %anonymous functions), but it seems to hang. Therefore, the assumption will be made that
-        %the tinv function is available for releases before version 7.0.
-        %
-        % fun=inline('max(a,(1-a))-(1+betainc(v/(v+tval^2),v/2,0.5)/2)','tval','a','v');
-        % t=fzero(fun,5,[],a,v);
-        t_inv=inline('tinv(max(a,(1-a)),v)','a','v');     %#ok<DINLN>
         alpha_to_Z=inline('-sqrt(2) * erfcinv(a*2)','a'); %#ok<DINLN>
     end
 end
 
-%compute main characteristics
+%Compute main characteristics.
 data=y(:)-x(:);data(isnan(data))=[];
-n=numel(data);%cases
-mu=mean(data);%mean
-s=std(data);%SD
+n=numel(data);%Cases
+mu=mean(data);%Mean
+s=std(data);  %SD
 
-%compute statistical elements
-mu_ste=sqrt(s^2/n);%standard error of mean
-loa_ste=sqrt(3*s^2/n);%standard error of limit of agreement
-t=t_inv(alpha/2,n-1);%t-value
+%Compute statistical elements.
+mu_ste=sqrt(s^2/n);     %Standard error of mean
+loa_ste=sqrt(3*s^2/n);  %Standard error of limit of agreement
+t=t_inv(alpha/2,n-1);   %t-value
 z=alpha_to_Z(1-alpha/2);%Z value for two-tailed alpha
 
-%compute output parameters
+%Compute output parameters.
 CI.mu=[mu-mu_ste mu+mu_ste];
 loa=[mu-z*s mu+z*s];
 CI.loa_lower=[loa(1)-(t*loa_ste) loa(1)+(t*loa_ste)];
 CI.loa_upper=[loa(2)-(t*loa_ste) loa(2)+(t*loa_ste)];
 end
+function out=t_inv(a,v)
+% This implementation of tinv is by Star Strider
+%
+% https://www.mathworks.com/matlabcentral/fileexchange/56500
+%
+% http://web.archive.org/web/20190326204734/
+% https://www.mathworks.com/matlabcentral/mlc-downloads/downloads/
+%  submissions/56500/versions/1/contents/tstat3.m
+persistent isOctave,if isempty(isOctave),isOctave = exist('OCTAVE_VERSION', 'builtin') ~= 0;end
+persistent oct__tinv
+if isOctave
+    %Octave doesn't allow passing extra variables to fzero.
+    if isempty(oct__tinv)
+        %This uses eval to fool the syntax checker, but this requires some attention to make it
+        %still work if the code is minified.
+        oct__tdist2T=eval('@(t,v) (1-betainc(v/(v+t^2), v/2, 0.5));');
+        oct__tdist1T=eval(['@(t,v) 1-(1-' var2str(oct__tdist2T) '(t,v))/2;']);
+        oct__tinv=eval(['@(alpha,v) fzero(@(tval) (max(alpha,(1-alpha)) - ' ...
+            var2str(oct__tdist1T) '(tval,v)), 5);']);
+    end
+    out=oct__tinv(a,v);
+else
+    out=fzero(@t_inv_reimplementation___local_fun,5,optimset('fzero'),a,v);
+end
+end
+function out=t_inv_reimplementation___tdist2T(t,v)
+out=1-betainc(v/(v+t^2), v/2, 0.5);
+end
+function out=t_inv_reimplementation___tdist1T(t,v)
+out=1-(1-t_inv_reimplementation___tdist2T(t,v))/2;
+end
+function out=t_inv_reimplementation___local_fun(tval,a,v)
+out=max(a,(1-a))-t_inv_reimplementation___tdist1T(tval,v);
+end
 function [success,options,ME]=BlandAltmanPlot_parse_inputs(var1,var2,varargin)
-%Parse the inputs of the BlandAltmanPlot function
-% It returns a success flag, the parsed options, and an ME struct. As input, the options should
-% either be entered as a struct or as Name,Value pairs. Missing fields are filled from the default.
+%Parse the inputs of the BlandAltmanPlot function.
+% This function returns a success flag, the parsed options, and an ME struct. As input, the
+% options should either be entered as a struct or as Name,Value pairs. Missing fields are filled
+% from the default.
 
-%pre-assign outputs
+%Pre-assign outputs.
 success=false;
 options=struct;
 ME=struct('identifier','','message','');
 
-%Test if tinv is available on Matlab 6.5 and store the result to speed up subsequent runs.
-persistent tinv_is_available
-if isempty(tinv_is_available)
-        tinv_is_available=false;
-        if ifversion('>=',7.0,'isOctave','>=',4.0)
-            %The replacement for tinv will work on these releases, so no need for an error.
-            tinv_is_available=true;
-        else
-            try
-                %Just try to see if there is a tinv on the search path. This also allows for
-                %user-provided implementation.
-                ignore=tinv(0.05,19); %#ok<NASGU>
-                tinv_is_available=true;
-            catch
-            end
-        end
-end
-if ~tinv_is_available
-    ME.message='This function requires the tinv function on Matlab 6.5.';
-    ME.identifier='HJW:BlandAltmanPlot:no_tinv';
-    return
-end
-
-%test the required inputs
+%Test the required inputs.
 if numel(var1)==0 || numel(var1)~=max(size(var1)) || ~isnumeric(var1) ...
         || numel(size(var1))>2 %ndims must be <=2 for use in plot()
     ME.message='The first input is not a numeric vector.';
@@ -347,16 +357,17 @@ if numel(var1)~=numel(var2)
     return
 end
 
-%set the defaults
-default.StoreToAppdata=true;%store output in the axis with setappdata
-default.alpha=0.05;%set default alpha value to 5%
-default.plot_x_mean=true;%use the mean as x coordinate
-default.plotCI=true;%add the CIs of the mean and LoAs to the plot
-default.AddDetailsText=true;%add the details to the plot as text
-default.TextDigitsDisplayed=4;%number of digits or num2str FormatSpec
-default.xxyy=[];%axis range, leave empty or NaN to auto-determine
-default.TargetAxes=[];%axes where the plots and texts should be created
-default.Parent=[];%alternative option name for TargetAxes
+%Set the defaults.
+default.StoreToAppdata=true;  %Store output in the axis with setappdata.
+default.alpha=0.05;           %Set default alpha value to 5%.
+default.plot_x_mean=true;     %Use the mean as x coordinate.
+default.plotCI=true;          %Add the CIs of the mean and LoAs to the plot.
+default.GroupIndex=[];        %Don't split the plot.
+default.AddDetailsText=true;  %Add the details to the plot as text.
+default.TextDigitsDisplayed=4;%Number of digits or num2str FormatSpec.
+default.xxyy=[];              %Axis range, leave empty or NaN to auto-determine.
+default.TargetAxes=[];        %Axes where the plots and texts should be created.
+default.Parent=[];            %Alternative option name for TargetAxes.
 
 %The required inputs are checked, so now we need to return the default options if there are no
 %further inputs.
@@ -367,7 +378,7 @@ if nargin==2
     return
 end
 
-%test the optional inputs
+%Test the optional inputs.
 struct_input=nargin==3 && isa(varargin{1},'struct');
 NameValue_input=mod(nargin,2)==0 && ...
     all(cellfun('isclass',varargin(1:2:end),'char'));
@@ -446,7 +457,7 @@ for k=1:numel(fn)
                 return
             end
         case 'xxyy'
-            %NaN values will be filled with the data extent
+            %NaN values will be filled with the data extent.
             if ~isnumeric(item) || (numel(item)~=4 && ~isempty(item)) || ...
                     ( ~isempty(item) && ...
                     ( item(2)<=item(1) || item(4)<=item(3) ) )
@@ -471,6 +482,21 @@ for k=1:numel(fn)
                     return
                 end
             end
+        case 'GroupIndex'
+            if isempty(item),continue,end %If explicitly set to empty there is no need for checks.
+            try
+                if numel(item)~=numel(var1)
+                    error('trigger')
+                end
+                x=zeros(1,max(item(:)));
+                x(item)=1; %An indexing operation should work for valid input.
+                if sum(x)==0 %At least 1 element should be marked.
+                    error('trigger')
+                end
+            catch
+                ME.message=['The values in GroupIndex must be valid array indices',...
+                    char(10),'and the number of elements must match the data.']; %#ok<CHARTEN>
+            end
         otherwise
             ME.message=sprintf('Name,Value pair not recognized: %s',curr_option);
             ME.identifier='HJW:BlandAltmanPlot:incorrect_input_NameValue';
@@ -478,7 +504,7 @@ for k=1:numel(fn)
     end
 end
 
-%fill any missing fields
+%Fill any missing fields.
 fn=fieldnames(default);
 for k=1:numel(fn)
     if ~isfield(options,fn(k))
@@ -537,29 +563,27 @@ function tf=ifversion(test,Rxxxxab,Oct_flag,Oct_test,Oct_ver)
 % ifversion('==','R2018a') returns true only when run on R2018a
 % ifversion('==',9.9) returns true only when run on R2020b
 % ifversion('<',0,'Octave','>',0) returns true only on Octave
+% ifversion('<',0,'Octave','>=',6) returns true only on Octave 6 and higher
 %
 % The conversion is based on a manual list and therefore needs to be updated manually, so it might
 % not be complete. Although it should be possible to load the list from Wikipedia, this is not
 % implemented.
 %
-%  _______________________________________________________________________
-% | Compatibility | Windows 10  | Ubuntu 20.04 LTS | MacOS 10.15 Catalina |
-% |---------------|-------------|------------------|----------------------|
-% | ML R2020b     |  works      |  not tested      |  not tested          |
-% | ML R2018a     |  works      |  works           |  not tested          |
-% | ML R2015a     |  works      |  works           |  not tested          |
-% | ML R2011a     |  works      |  works           |  not tested          |
-% | ML 6.5 (R13)  |  works      |  not tested      |  not tested          |
-% | Octave 5.2.0  |  works      |  works           |  not tested          |
-% | Octave 4.4.1  |  works      |  not tested      |  works               |
-% """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%
+%|                                                                         |%
+%|  Version: 1.0.6                                                         |%
+%|  Date:    2021-03-11                                                    |%
+%|  Author:  H.J. Wisselink                                                |%
+%|  Licence: CC by-nc-sa 4.0 ( creativecommons.org/licenses/by-nc-sa/4.0 ) |%
+%|  Email = 'h_j_wisselink*alumnus_utwente_nl';                            |%
+%|  Real_email = regexprep(Email,{'*','_'},{'@','.'})                      |%
+%|                                                                         |%
+%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%
 %
-% Version: 1.0.4
-% Date:    2020-09-28
-% Author:  H.J. Wisselink
-% Licence: CC by-nc-sa 4.0 ( creativecommons.org/licenses/by-nc-sa/4.0 )
-% Email = 'h_j_wisselink*alumnus_utwente_nl';
-% Real_email = regexprep(Email,{'*','_'},{'@','.'})
+% Tested on several versions of Matlab (ML 6.5 and onward) and Octave (4.4.1 and onward), and on
+% multiple operating systems (Windows/Ubuntu/MacOS). For the full test matrix, see the HTML doc.
+% Compatibility considerations:
+% - This is expected to work on all releases.
 
 %The decimal of the version numbers are padded with a 0 to make sure v7.10 is larger than v7.9.
 %This does mean that any numeric version input needs to be adapted. multiply by 100 and round to
@@ -573,20 +597,20 @@ if isempty(v_num)
     
     %get current version number
     v_num=version;
-    ii=strfind(v_num,'.');
-    if numel(ii)~=1,v_num(ii(2):end)='';ii=ii(1);end
+    ii=strfind(v_num,'.');if numel(ii)~=1,v_num(ii(2):end)='';ii=ii(1);end
     v_num=[str2double(v_num(1:(ii-1))) str2double(v_num((ii+1):end))];
-    v_num=v_num(1)+v_num(2)/100;
-    v_num=round(100*v_num);%remove float rounding errors
+    v_num=v_num(1)+v_num(2)/100;v_num=round(100*v_num);
     
     %get dictionary to use for ismember
     v_dict={...
-        'R13' 605;'R13SP1' 605;'R13SP2' 605;'R14' 700;'R14SP1' 700;'R14SP2' 700;'R14SP3' 701;...
-        'R2006a' 702;'R2006b' 703;'R2007a' 704;'R2007b' 705;'R2008a' 706;'R2008b' 707;...
-        'R2009a' 708;'R2009b' 709;'R2010a' 710;'R2010b' 711;'R2011a' 712;'R2011b' 713;...
-        'R2012a' 714;'R2012b' 800;'R2013a' 801;'R2013b' 802;'R2014a' 803;'R2014b' 804;...
-        'R2015a' 805;'R2015b' 806;'R2016a' 900;'R2016b' 901;'R2017a' 902;'R2017b' 903;...
-        'R2018a' 904;'R2018b' 905;'R2019a' 906;'R2019b' 907;'R2020a' 908;'R2020b',909};
+        'R13' 605;'R13SP1' 605;'R13SP2' 605;'R14' 700;'R14SP1' 700;'R14SP2' 700;
+        'R14SP3' 701;'R2006a' 702;'R2006b' 703;'R2007a' 704;'R2007b' 705;
+        'R2008a' 706;'R2008b' 707;'R2009a' 708;'R2009b' 709;'R2010a' 710;
+        'R2010b' 711;'R2011a' 712;'R2011b' 713;'R2012a' 714;'R2012b' 800;
+        'R2013a' 801;'R2013b' 802;'R2014a' 803;'R2014b' 804;'R2015a' 805;
+        'R2015b' 806;'R2016a' 900;'R2016b' 901;'R2017a' 902;'R2017b' 903;
+        'R2018a' 904;'R2018b' 905;'R2019a' 906;'R2019b' 907;'R2020a' 908;
+        'R2020b' 909;'R2021a' 910};
 end
 
 if octave
@@ -594,27 +618,30 @@ if octave
         warning('HJW:ifversion:NoOctaveTest',...
             ['No version test for Octave was provided.',char(10),...
             'This function might return an unexpected outcome.']) %#ok<CHARTEN>
-        %Use the same test as for Matlab, which will probably fail.
-        L=ismember(v_dict(:,1),Rxxxxab);
-        if sum(L)~=1
-            warning('HJW:ifversion:NotInDict',...
-                'The requested version is not in the hard-coded list.')
-            tf=NaN;return
+        if isnumeric(Rxxxxab)
+            v=0.1*Rxxxxab+0.9*fix(Rxxxxab);v=round(100*v);
         else
-            v=v_dict{L,2};
+            L=ismember(v_dict(:,1),Rxxxxab);
+            if sum(L)~=1
+                warning('HJW:ifversion:NotInDict',...
+                    'The requested version is not in the hard-coded list.')
+                tf=NaN;return
+            else
+                v=v_dict{L,2};
+            end
         end
     elseif nargin==4
-        %undocumented shorthand syntax: skip the 'Octave' argument
+        % Undocumented shorthand syntax: skip the 'Octave' argument.
         [test,v]=deal(Oct_flag,Oct_test);
-        %convert 4.1 to 401
+        % Convert 4.1 to 401.
         v=0.1*v+0.9*fix(v);v=round(100*v);
     else
         [test,v]=deal(Oct_test,Oct_ver);
-        %convert 4.1 to 401
+        % Convert 4.1 to 401.
         v=0.1*v+0.9*fix(v);v=round(100*v);
     end
 else
-    %convert R notation to numeric and convert 9.1 to 901
+    % Convert R notation to numeric and convert 9.1 to 901.
     if isnumeric(Rxxxxab)
         v=0.1*Rxxxxab+0.9*fix(Rxxxxab);v=round(100*v);
     else
@@ -629,20 +656,16 @@ else
     end
 end
 switch test
-    case '=='
-        tf= v_num == v;
-    case '<'
-        tf= v_num <  v;
-    case '<='
-        tf= v_num <= v;
-    case '>'
-        tf= v_num >  v;
-    case '>='
-        tf= v_num >= v;
+    case '==', tf= v_num == v;
+    case '<' , tf= v_num <  v;
+    case '<=', tf= v_num <= v;
+    case '>' , tf= v_num >  v;
+    case '>=', tf= v_num >= v;
 end
 end
 function [isLogical,val]=test_if_scalar_logical(val)
 %Test if the input is a scalar logical or convertible to it.
+%The char and string test are not case sensitive.
 %(use the first output to trigger an input error, use the second as the parsed input)
 %
 % Allowed values:
@@ -650,11 +673,15 @@ function [isLogical,val]=test_if_scalar_logical(val)
 %- 1 or 0
 %- 'on' or 'off'
 %- matlab.lang.OnOffSwitchState.on or matlab.lang.OnOffSwitchState.off
+%- 'enable' or 'disable'
+%- 'enabled' or 'disabled'
 persistent states
 if isempty(states)
     states={true,false;...
         1,0;...
-        'on','off'};
+        'on','off';...
+        'enable','disable';...
+        'enabled','disabled'};
     try
         states(end+1,:)=eval('{"on","off"}');
     catch
@@ -662,6 +689,9 @@ if isempty(states)
 end
 isLogical=true;
 try
+    if isa(val,'char') || isa(val,'string')
+        try val=lower(val);catch,end
+    end
     for n=1:size(states,1)
         for m=1:2
             if isequal(val,states{n,m})
@@ -675,4 +705,24 @@ try
 catch
 end
 isLogical=false;
+end
+function varargout=var2str(varargin)
+%Analogous to func2str, return the variable names as char arrays, as detected by inputname.
+%This returns an error for invalid inputs and if nargin~=max(1,nargout).
+%
+%You can use comma separated lists to create a cell array:
+% out=cell(1,2);
+% foo=1;bar=2;
+% [out{:}]=var2str(foo,bar);
+err_flag= nargin~=max(1,nargout) ;
+if ~err_flag
+    varargout=cell(nargin,1);
+    for n=1:nargin
+        try varargout{n}=inputname(n);catch,varargout{n}='';end
+        if isempty(varargout{n}),err_flag=true;break,end
+    end
+end
+if err_flag
+    error('Invalid input and/or output.')
+end
 end
