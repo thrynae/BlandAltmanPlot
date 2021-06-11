@@ -82,8 +82,8 @@ function h=BlandAltmanPlot(var1, var2, varargin)
 %
 %/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%/%
 %|                                                                         |%
-%|  Version: 1.2.0                                                         |%
-%|  Date:    2021-05-19                                                    |%
+%|  Version: 1.2.1                                                         |%
+%|  Date:    2021-06-11                                                    |%
 %|  Author:  H.J. Wisselink                                                |%
 %|  Licence: CC by-nc-sa 4.0 ( creativecommons.org/licenses/by-nc-sa/4.0 ) |%
 %|  Email = 'h_j_wisselink*alumnus_utwente_nl';                            |%
@@ -288,7 +288,7 @@ t=t_inv(alpha/2,n-1);   %t-value
 z=alpha_to_Z(1-alpha/2);%Z value for two-tailed alpha
 
 %Compute output parameters.
-CI.mu=[mu-mu_ste mu+mu_ste];
+CI.mu=[mu-t*mu_ste mu+t*mu_ste];
 loa=[mu-z*s mu+z*s];
 CI.loa_lower=[loa(1)-(t*loa_ste) loa(1)+(t*loa_ste)];
 CI.loa_upper=[loa(2)-(t*loa_ste) loa(2)+(t*loa_ste)];
